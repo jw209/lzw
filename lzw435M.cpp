@@ -65,6 +65,7 @@ std::string decompress(Iterator begin, Iterator end) {
   std::string entry;
   for ( ; begin != end; begin++) {
     int k = *begin;
+    std::cout << k << std::endl;
     if (dictionary.count(k))
       entry = dictionary[k];
     else if (k == dictSize)
@@ -140,31 +141,19 @@ int main(int argc, char* argv[]) {
         compress(contents, std::back_inserter(compressed));
         
         int c = 69;
-        int bits = 9; //length of the code
+        int bits = 10; //length of the code
+        int initialDictSize = 512;
         std::string p = int2BinaryString(c, bits);
         
         std::string bcode= "";
         for (std::vector<int>::iterator it = compressed.begin() ; it != compressed.end(); ++it) {
             std::cout << *it << std::endl;
-            /*
-            if (*it < 256)
-                bits = 10;
-            if (*it >= 256)
-                bits = 11;
-            if (*it >= 260)
-                bits = 12;
-            if (*it >= 264)
-                bits = 13;
-            if (*it >= 268)
-                bits = 14;
-            if (*it >= 272)
-                bits = 15;
-            if (*it >= 276)
-                bits = 16;
-            */
 
-            //assuming 15 bits
-            bits = 12;
+            if (*it > initialDictSize) {
+              initialDictSize *= 2;
+              ++bits;
+            }
+
             p = int2BinaryString(*it, bits);
             std::cout << "c=" << *it <<" : binary string="<<p<<"; back to code=" << binaryString2Int(p)<<"\n";
             bcode+=p;
@@ -204,10 +193,9 @@ int main(int argc, char* argv[]) {
         struct stat filestatus;
         stat(argv[2], &filestatus );
         long fsize = filestatus.st_size; //get the size of the file in bytes
-        std::cout << fsize << std::endl;
         char c2[fsize];
         myfile2.read(c2, fsize);
-        
+        std::cout << c2 << std::endl;
         std::string s = "";
         long count = 0;
         while(count<fsize) {
@@ -226,8 +214,9 @@ int main(int argc, char* argv[]) {
         } 
         myfile2.close();
         std::vector<int> compressed;
-        for (int i = 0; i < s.length(); i += 12) {
-            std::string binaryStr = s.substr(i, 12);
+        int initialScanLength = 10;
+        for (int i = 0; i < s.length(); i += initialScanLength) {
+            std::string binaryStr = s.substr(i, initialScanLength);
             //std::cout << "current binary string: " << binaryStr << std::endl;
             if (binaryString2Int(binaryStr) != 0) {
                 compressed.push_back(binaryString2Int(binaryStr));

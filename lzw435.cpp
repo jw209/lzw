@@ -140,19 +140,12 @@ int main(int argc, char* argv[]) {
         compress(contents, std::back_inserter(compressed));
         
         int c = 69;
-        int bits = 9; //length of the code
+        int bits = 12;
         std::string p = int2BinaryString(c, bits);
         
         std::string bcode= "";
         for (std::vector<int>::iterator it = compressed.begin() ; it != compressed.end(); ++it) {
         
-            if (*it<256)
-                bits = 8; 
-            else
-                bits = 9;
-            
-            //assuming 12 bits
-            bits = 12;
             p = int2BinaryString(*it, bits);
             //std::cout << "c=" << *it <<" : binary string="<<p<<"; back to code=" << binaryString2Int(p)<<"\n";
             bcode+=p;
