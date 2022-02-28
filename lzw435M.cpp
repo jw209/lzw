@@ -65,7 +65,6 @@ std::string decompress(Iterator begin, Iterator end) {
   std::string entry;
   for ( ; begin != end; begin++) {
     int k = *begin;
-    std::cout << k << std::endl;
     if (dictionary.count(k))
       entry = dictionary[k];
     else if (k == dictSize)
@@ -134,33 +133,52 @@ int main(int argc, char* argv[]) {
     }
 
     if (*argv[1] == 'c') {
-        // compress the file
+        // compressing the file
         std::cout << "COMPRESSING...[" << argv[2] << "] ===> [" << filename << ".lzw] \n";
+        // extract the file
         std::string contents = getFileContents(argv[2]);
+
+        // create a table of compressed values
         std::vector<int> compressed;
         compress(contents, std::back_inserter(compressed));
         
-        int c = 69;
-        int bits = 10; //length of the code
-        int initialDictSize = 512;
-        std::string p = int2BinaryString(c, bits);
-        
+        // initialize values for building binary code string
+        int bits = 10; //start with this bit length
+        int count = 256;
+        std::string p = "";
         std::string bcode= "";
-        for (std::vector<int>::iterator it = compressed.begin() ; it != compressed.end(); ++it) {
-            std::cout << *it << std::endl;
 
-            if (*it > initialDictSize) {
-              initialDictSize *= 2;
-              ++bits;
+        // iterate through compressed table and convert values to binary strings with a variable
+        // binary code length
+        for (std::vector<int>::iterator it = compressed.begin() ; it != compressed.end(); ++it) {
+
+            // log how many entries in the table and adjust bit
+            // size depending on how many entries currently in the table
+            if (count <= 2048 && count > 1024) {
+              bits = 11;
+            }
+            if (count <= 4096 && count > 2048) {
+              bits = 12;
+            }
+            if (count <= 8192 && count > 4096) {
+              bits = 13;
+            }
+            if (count <= 16384 && count > 8192) {
+              bits = 14;
+            }
+            if (count <= 32768 && count > 16384) {
+              bits = 15;
+            }
+            if (count > 32768) {
+              bits = 16;
             }
 
             p = int2BinaryString(*it, bits);
-            std::cout << "c=" << *it <<" : binary string="<<p<<"; back to code=" << binaryString2Int(p)<<"\n";
             bcode+=p;
+            ++count;
         }
 
-        //writing to file
-        //std::cout << "string 2 save : "<< bcode << "\n";
+        // writing to file
         std::string fileName = filename + ".lzw";
         std::ofstream myfile;
         myfile.open(fileName.c_str(),  std::ios::binary);
@@ -183,20 +201,20 @@ int main(int argc, char* argv[]) {
         myfile.close();
 
     } else if (*argv[1] == 'e') {
-        // extract the file
+        // decompressing the file
         std::cout << "EXTRACTING...[" << argv[2] << "] ===> [" << filename << "2.txt] \n";
-        std::string zeros = "00000000";
-        //reading from a file
+        // extract the file
         std::ifstream myfile2;
         myfile2.open (argv[2],  std::ios::binary);
-        
         struct stat filestatus;
         stat(argv[2], &filestatus );
         long fsize = filestatus.st_size; //get the size of the file in bytes
         char c2[fsize];
         myfile2.read(c2, fsize);
-        std::cout << c2 << std::endl;
+
+        // initialize values for reading binary string to 's' variable
         std::string s = "";
+        std::string zeros = "00000000";
         long count = 0;
         while(count<fsize) {
             unsigned char uc =  (unsigned char) c2[count];
@@ -213,15 +231,48 @@ int main(int argc, char* argv[]) {
             count++;
         } 
         myfile2.close();
+
+        // create a table for compressed values
         std::vector<int> compressed;
-        int initialScanLength = 10;
-        for (int i = 0; i < s.length(); i += initialScanLength) {
-            std::string binaryStr = s.substr(i, initialScanLength);
-            //std::cout << "current binary string: " << binaryStr << std::endl;
-            if (binaryString2Int(binaryStr) != 0) {
-                compressed.push_back(binaryString2Int(binaryStr));
+
+        // initialize values for rebuilding table of compressed values
+        int scanLength = 10;
+        int numEntries = 256;
+        int i = 0;
+
+        // rebuild the table of compressed values following the same pattern
+        // as seen in the compression algorithm
+        while (i <= s.length()) {
+            // check the number of entries and change bit length accordingly
+            if (numEntries <= 2048 && numEntries > 1024) {
+              scanLength = 11;
             }
+            if (numEntries <= 4096 && numEntries > 2048) {
+              scanLength = 12;
+            }
+            if (numEntries <= 8192 && numEntries > 4096) {
+              scanLength = 13;
+            }
+            if (numEntries <= 16384 && numEntries > 8192) {
+              scanLength = 14;
+            }
+            if (numEntries <= 32768 && numEntries > 16384) {
+              scanLength = 15;
+            }
+            if (numEntries > 32768) {
+              scanLength = 16;
+            }
+            
+            // create a substring and push it back to table of compressed values
+            std::string binaryStr = s.substr(i, scanLength);
+            if (binaryString2Int(binaryStr) != 0) {
+              compressed.push_back(binaryString2Int(binaryStr));
+            } 
+            
+            i += scanLength;
+            ++numEntries;
         }
+        // save the decompression result in a string variable
         std::string result = decompress(compressed.begin(), compressed.end());
         //writing to file
         std::string fileName = filename + "2.txt";

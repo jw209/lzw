@@ -61,7 +61,6 @@ std::string decompress(Iterator begin, Iterator end) {
  
   std::string w(1, *begin++);
   std::string result = w;
-  //std::cout << "\ndecompressed: " << result <<";";
   std::string entry;
   for ( ; begin != end; begin++) {
     int k = *begin;
@@ -73,8 +72,6 @@ std::string decompress(Iterator begin, Iterator end) {
       throw "Bad compressed k";
  
     result += entry;
-    //std::cout << "\ndecompressed: " << result <<";";
-    // Add w+entry[0] to the dictionary.
     if (dictionary.size()<4096)
       dictionary[dictSize++] = w + entry[0];
  
@@ -124,6 +121,7 @@ int binaryString2Int(std::string p) {
 }
 
 int main(int argc, char* argv[]) {
+
     // get file contents
     std::string filename;
     if (argv[2]) {
@@ -133,26 +131,28 @@ int main(int argc, char* argv[]) {
     }
 
     if (*argv[1] == 'c') {
-        // compress the file
+
+        // compressing the file
         std::cout << "COMPRESSING...[" << argv[2] << "] ===> [" << filename << ".lzw] \n";
+
+        // extract the file
         std::string contents = getFileContents(argv[2]);
+
+        // create a table for storing compressed values
         std::vector<int> compressed;
         compress(contents, std::back_inserter(compressed));
         
-        int c = 69;
+        // initialize values for building binary code string
         int bits = 12;
-        std::string p = int2BinaryString(c, bits);
-        
+        std::string p = "";
         std::string bcode= "";
         for (std::vector<int>::iterator it = compressed.begin() ; it != compressed.end(); ++it) {
-        
+            // convert *it to a binary string of 'bits' length and append to bcode string
             p = int2BinaryString(*it, bits);
-            //std::cout << "c=" << *it <<" : binary string="<<p<<"; back to code=" << binaryString2Int(p)<<"\n";
             bcode+=p;
         }
 
         //writing to file
-        //std::cout << "string 2 save : "<< bcode << "\n";
         std::string fileName = filename + ".lzw";
         std::ofstream myfile;
         myfile.open(fileName.c_str(),  std::ios::binary);
@@ -175,21 +175,23 @@ int main(int argc, char* argv[]) {
         myfile.close();
 
     } else if (*argv[1] == 'e') {
-        // extract the file
+
+        // extracting the file
         std::cout << "EXTRACTING...[" << argv[2] << "] ===> [" << filename << "2.txt] \n";
         std::string zeros = "00000000";
+
         //reading from a file
         std::ifstream myfile2;
         myfile2.open (argv[2],  std::ios::binary);
-        
         struct stat filestatus;
         stat(argv[2], &filestatus );
         long fsize = filestatus.st_size; //get the size of the file in bytes
-        
         char c2[fsize];
         myfile2.read(c2, fsize);
-        
+
+        // initialize values for storing binary code into 's' variable
         std::string s = "";
+        std::string zeros = "00000000";
         long count = 0;
         while(count<fsize) {
             unsigned char uc =  (unsigned char) c2[count];
@@ -206,15 +208,21 @@ int main(int argc, char* argv[]) {
             count++;
         } 
         myfile2.close();
+        
+        // create a table for storing compressed values
         std::vector<int> compressed;
+
+        // store compressed 
         for (int i = 0; i < s.length(); i += 12) {
             std::string binaryStr = s.substr(i, 12);
-            //std::cout << "current binary string: " << binaryStr << std::endl;
             if (binaryString2Int(binaryStr) != 0) {
                 compressed.push_back(binaryString2Int(binaryStr));
             }
         }
+
+        // store decompressed string into result
         std::string result = decompress(compressed.begin(), compressed.end());
+        
         //writing to file
         std::string fileName = filename + "2.txt";
         std::ofstream myfile;
