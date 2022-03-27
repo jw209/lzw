@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
         std::size_t pos = fname.find(".");
         filename = fname.substr(0, pos);
     }
-
+    std::string zeros = "00000000";
     if (*argv[1] == 'c') {
 
         // compressing the file
@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
         std::ofstream myfile;
         myfile.open(fileName.c_str(),  std::ios::binary);
         
-        std::string zeros = "00000000";
+        
         if (bcode.size()%8!=0) //make sure the length of the binary string is a multiple of 8
             bcode += zeros.substr(0, 8-bcode.size()%8);
         
@@ -178,7 +178,6 @@ int main(int argc, char* argv[]) {
 
         // extracting the file
         std::cout << "EXTRACTING...[" << argv[2] << "] ===> [" << filename << "2.txt] \n";
-        std::string zeros = "00000000";
 
         //reading from a file
         std::ifstream myfile2;
@@ -191,7 +190,6 @@ int main(int argc, char* argv[]) {
 
         // initialize values for storing binary code into 's' variable
         std::string s = "";
-        std::string zeros = "00000000";
         long count = 0;
         while(count<fsize) {
             unsigned char uc =  (unsigned char) c2[count];
